@@ -4,6 +4,7 @@ const mineflayerViewer = require('prismarine-viewer').mineflayer
 const puppeteer = require('puppeteer')
 const TwitterApi = require('twitter-api-v2')
 let available = true
+let lastTweet = ""
 
 const twitterClient = new TwitterApi.TwitterApi({
     appKey: process.env.TWITTER_CONSUMER_KEY,
@@ -24,17 +25,26 @@ bot.once('spawn', () => {
 bot.on('chat', (username, message) => {
     if (username === bot.username) return
     if (message == 'photo') {
-        (async () => {
-            const browser = await puppeteer.launch()
-            const page = await browser.newPage()
-            await page.goto('http://localhost:3000', {waitUntil: 'networkidle2'})
-            setTimeout(async () => {
-                await page.screenshot({ path: 'banner.png' })
-                await browser.close()
-                await twitterClient.v1.updateAccountProfileBanner('./banner.png', { offset_top: 640, offset_left: 400 });
-
-            }, 8000)
-        })();
+        if (available) {
+            (async () => {
+                const browser = await puppeteer.launch()
+                const page = await browser.newPage()
+                await page.goto('http://localhost:3000', {waitUntil: 'networkidle2'})
+                setTimeout(async () => {
+                    await page.screenshot({ path: 'banner.png' })
+                    await browser.close()
+                    await twitterClient.v1.updateAccountProfileBanner('./banner.png', { offset_top: 640, offset_left: 400 });
+                    available = false
+                    lastTweet = 
+                    setTimeout(() => {
+                        available = true
+                    }, 600000)
+                }, 8000)
+            })();
+        } else {
+            bot.chat("Vous devez attendre 10 minutes entre chaque utilisations de la commande !")
+            
+        }
     }
 })
 
