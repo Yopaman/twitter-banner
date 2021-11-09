@@ -40,7 +40,7 @@ bot.once('spawn', () => {
     }).then((browser) => {
         console.log("Navigateur démarré")
         browser.newPage().then(page => {
-            page.goto('http://localhost:3000', {waitUntil: 'networkidle2'}).then(resp => {
+            page.goto('http://localhost:3000', {waitUntil: 'networkidle2', timeout: 0}).then(resp => {
                 console.log("Page chargée")
                 bot.on('chat', (username, message) => {
                     if (username === bot.username) return
