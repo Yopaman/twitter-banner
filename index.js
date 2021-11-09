@@ -34,40 +34,45 @@ const bot = mineflayer.createBot({
 })
 
 bot.once('spawn', () => {
-    mineflayerViewer(bot, { port: 3000, firstPerson: true }) // Start the viewing server on port 3000
+    mineflayerViewer(bot, { port: 3000, firstPerson: true })
+    puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    }).then((browser) => {
+        console.log("Navigateur démarré")
+        browser.newPage().then(page => {
+            page.goto('http://localhost:3000', {waitUntil: 'networkidle2'}).then(resp => {
+                console.log("Page chargée")
+                bot.on('chat', (username, message) => {
+                    if (username === bot.username) return
+                    if (message == 'photo') {
+                        if (available) {
+                            bot.chat("Prise de la photo dans 10 secondes.")
+                            setTimeout(async () => {
+                                bot.chat("Cheese !!!")
+                                await page.screenshot({ path: 'banner.png' })
+                                await twitterClient.v1.updateAccountProfileBanner('./banner.png', { offset_top: 640, offset_left: 400 });
+                                available = false
+                                const now = Date.now()
+                                lastTweet = new Date(now).toTimeString()
+                                logger.info("Le joueur " + username + " a pris une photo")
+                                setTimeout(() => {
+                                    available = true
+                                }, 600000)
+                            }, 10000)
+                        } else {
+                            bot.chat("Vous devez attendre 10 minutes entre chaque utilisations de la commande ! (dernière photo : " + lastTweet + ")")
+                            
+                        }
+                    }
+                })
+            })
+        })
+    })
 })
 
-bot.on('chat', (username, message) => {
-    if (username === bot.username) return
-    if (message == 'photo') {
-        if (available) {
-            (async () => {
-                bot.chat("Prise de la photo dans 10 secondes.")
-                const browser = await puppeteer.launch({
-                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-                })
-                const page = await browser.newPage()
-                await page.goto('http://localhost:3000', {waitUntil: 'networkidle2'})
-                setTimeout(async () => {
-                    bot.chat("Cheese !!!")
-                    await page.screenshot({ path: 'banner.png' })
-                    await browser.close()
-                    await twitterClient.v1.updateAccountProfileBanner('./banner.png', { offset_top: 640, offset_left: 400 });
-                    available = false
-                    const now = Date.now()
-                    lastTweet = new Date(now).toTimeString()
-                    logger.info("Le joueur " + username + " a pris une photo")
-                    setTimeout(() => {
-                        available = true
-                    }, 600000)
-                }, 10000)
-            })();
-        } else {
-            bot.chat("Vous devez attendre 10 minutes entre chaque utilisations de la commande ! (dernière photo : " + lastTweet + ")")
-            
-        }
-    }
-})
+
+
+
 
 bot.on('kicked', console.log)
 bot.on('error', console.log)
